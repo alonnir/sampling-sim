@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sampling Simulator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM (Using version 18.2.0 for best UMD compatibility) -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Recharts Dependencies - Must be loaded before Recharts -->
+    <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #2563eb;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .recharts-responsive-container {
+            min-height: 200px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        
+        // Destructure from Recharts global
+        const { 
+            BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
+        } = window.Recharts;
+
+        const Icon = ({ name, className }) => {
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [name]);
+            return <i data-lucide={name} className={className}></i>;
+        };
+
+        const App = () => {
+            const [populationSize, setPopulationSize] = useState(1200);
+            const [numDraws, setNumDraws] = useState(10000);
+            const [simulationData, setSimulationData] = useState({ sorted: [], raw: [] });
+            const [stats, setStats] = useState({ mean: 0, max: 0, min: 0, coverage: 0 });
+            const [isSimulating, setIsSimulating] = useState(false);
+
+            const runSimulation = () => {
+                setIsSimulating(true);
+                requestAnimationFrame(() => {
+                    const counts = new Array(populationSize).fill(0);
+                    for (let i = 0; i < numDraws; i++) {
+                        const item = Math.floor(Math.random() * populationSize);
+                        counts[item]++;
+                    }
+                    
+                    const rawData = counts.map((freq, index) => ({ id: index + 1, frequency: freq }));
+                    const sortedData = [...rawData]
+                        .sort((a, b) => b.frequency - a.frequency)
+                        .map((item, index) => ({
+                            rank: index + 1,
+                            frequency: item.frequency,
+                            originalId: item.id
+                        }));
+
+                    const mean = numDraws / populationSize;
+                    const max = Math.max(...counts);
+                    const min = Math.min(...counts);
+                    const hitCount = counts.filter(f => f > 0).length;
+                    const coverage = (hitCount / populationSize) * 100;
+
+                    setSimulationData({ sorted: sortedData, raw: rawData });
+                    setStats({ mean, max, min, coverage });
+                    setIsSimulating(false);
+                });
+            };
+
+            useEffect(() => {
+                const timer = setTimeout(() => runSimulation(), 300);
+                return () => clearTimeout(timer);
+            }, [populationSize, numDraws]);
+
+            return (
+                <div className="min-h-screen p-4 md:p-8">
+                    <div className="max-w-7xl mx-auto">
+                        <header className="mb-8 border-b border-slate-200 pb-6">
+                            <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-2">
+                                <Icon name="refresh-cw" className={`w-8 h-8 text-blue-600 ${isSimulating ? 'animate-spin' : ''}`} />
+                                Sampling Simulator
+                            </h1>
+                            <p className="text-slate-500 mt-2 text-sm md:text-base">Exploring the "Law of Large Numbers" and Stochastic Variance.</p>
+                        </header>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                            <div className="lg:col-span-1 space-y-6">
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                                    <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                        <Icon name="database" className="w-4 h-4" /> Parameters
+                                    </h2>
+                                    <div className="space-y-6">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-2 flex justify-between font-mono">
+                                                M: {populationSize.toLocaleString()}
+                                            </label>
+                                            <input type="range" min="50" max="2000" step="50" value={populationSize}
+                                                onChange={(e) => setPopulationSize(parseInt(e.target.value))}
+                                                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                                            <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-tight">Population Size</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-2 flex justify-between font-mono">
+                                                N: {numDraws.toLocaleString()}
+                                            </label>
+                                            <input type="range" min="1000" max="500000" step="1000" value={numDraws}
+                                                onChange={(e) => setNumDraws(parseInt(e.target.value))}
+                                                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                                            <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-tight">Number of Draws</p>
+                                        </div>
+                                        <button 
+                                            onClick={runSimulation} 
+                                            disabled={isSimulating}
+                                            className={`w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-100 ${isSimulating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        >
+                                            <Icon name="refresh-cw" className={`w-4 h-4 ${isSimulating ? 'animate-spin' : ''}`} />
+                                            Re-Simulate
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                    <p className="text-xs text-blue-800 leading-relaxed">
+                                        <strong>Observe:</strong> As you increase N to 500k, the noise in the Raw Distribution settles, illustrating how relative variance decreases in large samples.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="lg:col-span-3 space-y-6">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {[
+                                        { label: 'Expected Mean', value: stats.mean.toFixed(2), color: 'text-blue-600' },
+                                        { label: 'Max Freq', value: stats.max, color: 'text-emerald-600' },
+                                        { label: 'Min Freq', value: stats.min, color: 'text-rose-600' },
+                                        { label: 'Coverage', value: `${stats.coverage.toFixed(1)}%`, color: 'text-purple-600' },
+                                    ].map((stat, i) => (
+                                        <div key={i} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                                            <p className={`text-xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                            <Icon name="hash" className="w-4 h-4 text-blue-600" /> Rank-Frequency (Sorted by Luck)
+                                        </h2>
+                                    </div>
+                                    <div className="w-full h-[250px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={simulationData.sorted.slice(0, 800)}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                <XAxis dataKey="rank" hide />
+                                                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                                                <Tooltip 
+                                                    cursor={{fill: '#f8fafc'}}
+                                                    content={({ active, payload }) => {
+                                                        if (active && payload && payload.length) {
+                                                            return (
+                                                              <div className="bg-slate-900 text-white p-2 rounded shadow-lg text-xs border border-slate-700">
+                                                                <p className="opacity-60">Rank: {payload[0].payload.rank}</p>
+                                                                <p className="font-bold">Hits: {payload[0].value}</p>
+                                                                <p className="opacity-40 text-[9px]">Original ID: {payload[0].payload.originalId}</p>
+                                                              </div>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    }} 
+                                                />
+                                                <Bar dataKey="frequency">
+                                                    {simulationData.sorted.slice(0, 800).map((entry, index) => (
+                                                        <Cell key={index} fill={entry.frequency >= stats.mean ? '#3b82f6' : '#94a3b8'} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                                    <h2 className="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                        <Icon name="bar-chart-3" className="w-4 h-4 text-slate-400" /> Raw Distribution (Natural Item Sequence)
+                                    </h2>
+                                    <div className="w-full h-[220px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={simulationData.raw.slice(0, 800)}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                <XAxis dataKey="id" hide />
+                                                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                                                <Bar dataKey="frequency" fill="#cbd5e1" />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
