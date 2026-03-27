@@ -47,7 +47,7 @@
         
         // Destructure from Recharts global
         const { 
-            BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
+            BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Label 
         } = window.Recharts;
 
         const Icon = ({ name, className }) => {
@@ -176,12 +176,23 @@
                                             <Icon name="hash" className="w-4 h-4 text-blue-600" /> Rank-Frequency (Sorted by Luck)
                                         </h2>
                                     </div>
-                                    <div className="w-full h-[250px]">
+                                    <div className="w-full h-[320px]">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={simulationData.sorted.slice(0, 800)}>
+                                            <BarChart data={simulationData.sorted} margin={{ top: 10, right: 10, bottom: 45, left: 20 }}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                                <XAxis dataKey="rank" hide />
-                                                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                                                <XAxis 
+                                                    dataKey="rank" 
+                                                    type="number"
+                                                    domain={[1, populationSize]}
+                                                    tickCount={10}
+                                                    tick={{fill: '#94a3b8', fontSize: 10}}
+                                                    axisLine={{ stroke: '#e2e8f0' }}
+                                                >
+                                                    <Label value="Rank (High to Low Luck)" offset={-15} position="insideBottom" style={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} />
+                                                </XAxis>
+                                                <YAxis axisLine={{ stroke: '#e2e8f0' }} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}}>
+                                                    <Label value="Frequency" angle={-90} position="insideLeft" offset={-5} style={{ fill: '#64748b', fontSize: 12, fontWeight: 600, textAnchor: 'middle' }} />
+                                                </YAxis>
                                                 <Tooltip 
                                                     cursor={{fill: '#f8fafc'}}
                                                     content={({ active, payload }) => {
@@ -198,7 +209,7 @@
                                                     }} 
                                                 />
                                                 <Bar dataKey="frequency">
-                                                    {simulationData.sorted.slice(0, 800).map((entry, index) => (
+                                                    {simulationData.sorted.map((entry, index) => (
                                                         <Cell key={index} fill={entry.frequency >= stats.mean ? '#3b82f6' : '#94a3b8'} />
                                                     ))}
                                                 </Bar>
@@ -211,12 +222,23 @@
                                     <h2 className="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2">
                                         <Icon name="bar-chart-3" className="w-4 h-4 text-slate-400" /> Raw Distribution (Natural Item Sequence)
                                     </h2>
-                                    <div className="w-full h-[220px]">
+                                    <div className="w-full h-[280px]">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={simulationData.raw.slice(0, 800)}>
+                                            <BarChart data={simulationData.raw} margin={{ top: 10, right: 10, bottom: 45, left: 20 }}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                                <XAxis dataKey="id" hide />
-                                                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                                                <XAxis 
+                                                    dataKey="id" 
+                                                    type="number"
+                                                    domain={[1, populationSize]}
+                                                    tickCount={10}
+                                                    tick={{fill: '#94a3b8', fontSize: 10}}
+                                                    axisLine={{ stroke: '#e2e8f0' }}
+                                                >
+                                                     <Label value="Population ID (1 to M)" offset={-15} position="insideBottom" style={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} />
+                                                </XAxis>
+                                                <YAxis axisLine={{ stroke: '#e2e8f0' }} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}}>
+                                                    <Label value="Frequency" angle={-90} position="insideLeft" offset={-5} style={{ fill: '#64748b', fontSize: 12, fontWeight: 600, textAnchor: 'middle' }} />
+                                                </YAxis>
                                                 <Bar dataKey="frequency" fill="#cbd5e1" />
                                             </BarChart>
                                         </ResponsiveContainer>
